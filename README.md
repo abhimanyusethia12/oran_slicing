@@ -97,12 +97,30 @@ We observe that... **TODO**
 -->
 
 ## 2.0 Run my experiment
+In order to run the experiments, as described above, follow the steps described in this section. You will need several simultaneous live SSH shell connections to the POWDER Node. For this you have three options: (1) a local `bash` shell and SSH using the SSH public key you uploaded to POWDER; (2) click on the node in Topology View in your Powder Experiment and select `Open VNC Window`. Once a new VNC window is opened, click anywhere on the screen and then select `XTerm` option in the pop-up menu. This will open a new terminal window on the remote node; (3) in-browser POWDER shell support. The least cumbersome to use is the first option. 
 
-### Instantiate a POWDER profile
+### 2.1 Instantiate a POWDER profile
 
-**TODO**
+In your browser, login to POWDER testbed ( a cloudlab login works fine) and then browse to [O-RAN profile](https://www.powderwireless.net/show-profile.php?project=PowderProfiles&profile=O-RAN). Click on the 'Instantiate' button. It will open a page where you can change the various parameters of the profile. For our experiments, we only need the default set of parameters - so, do not change any parameters and click on 'Next'. After that you need to select the Project you are added to and can optionally give your exeriment a name (or else POWDER will allot it a randomly generated name). Then, click on 'Next' and 'Finish' on the final page. 
 
-### Install additional software
+_Note 1:_ If you want to play around with the parameters, beware as not all combinations work - O-RAN is under heavy development.
+_Note 2:_ You can also schedule the initalization of an experiment at a future date and time by using the options on the final page.
+
+### 2.2 Install additional software
+
+After you setup a new SSH connection to the node, run the following commands to install the required softwares:
+
+1. Install GNU Radio (will be used to run a flowgraph)
+```
+sudo apt install gnuradio
+```
+Check if it is succesfully installed using `gnuradio-config-info --version`
+2. Install and setup Apache Web server (will be used to run the emulated video-on-demand and web browsing applications)
+```
+sudo apt update  
+sudo apt install -y apache2
+```
+Check if it is succesfully installed using `apache2 -v #to check`
 
 ### Set up the cellular network
 
@@ -143,7 +161,12 @@ We observe that... **TODO**
 #### Analyze results from the third experiment
 
 
-## Notes
+## 3.0 Troubleshooting
+
+1. Cannot find the 'Instantiate' button when you open the profile link.
+This is most likely because you are not logged into Powder. You should be able to see the 'Instantiate' button only when you are logged into POWDER.
+
+3. 
 
 ### References
 
