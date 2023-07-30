@@ -67,15 +67,15 @@ So, we do three set of experiments to evaluate the impact on primary users when 
 |    <br>Secondary UE(s)    |             <br>Don’t exist            |            <br>Don’t exist            |       <br>Unbounded to any slice      |
 
 
-In the first experiment, the primary users alone are allocated 100% of the network resources. In the second experiment, however, while the majority of the network resource is allocated to the slice that serves the primary users, we also allocate resources in a secondary slice to serve emergency workers:
+For emulating the network traffic patterns of the various applications described above, we use the following methods:
 
-*  **TODO** 
+- Video-on-Demand: Setup Apache Web Server, ran video client on downloaded videos and observed video rate and instances of rebuffering from logs
+- Video Streaming: 2Mbps downlink UDP iperf stream, observing packet loss and jitter
+- Video Calling: 1.5Mbps bidirectional UDP iperf stream, observing packet loss and jitter
+- Web Browsing: Setup Apache Web Server, mirrored some selected websites like reddit.com , nytimes.com etc., in each iteration of a loop I retrieved a randomly chosen websiteby wget, then waited for random time interval (between 10s and 30s) and then re-ran the loop. Metrics observed are time taken to retrieve each website.
+- Intermittent Data transfer (for rescue workers): in each iteration of a loop, I setup a iperf TCP stream to send randomly chosen amount of data (between 0.5MB and 30MB) in a random direction (uplink or downlink), then waited for a random time interval (between 10s and 30s) and then re-ran the loop. Metrics observed are loss and time taken.    
 
-In the third experiment, the service provider servers primary users and emergency workers in two slices, as described above, and it also permits users of other cellular service providers - that may be in outage due to the disaster - to use any excess resources on its network, without being attached to any slice. These users may be able to use the network to e.g. access emergency information from local government websites.
-
-*  **TODO** 
-
-## Results
+<!-- ## Results
 
 In the first experiment, primary users alone are allocated 100% of the network resources. 
 
@@ -94,8 +94,9 @@ In the third experiment, primary users share the network with emergency workers,
 **TODO - table here**
 
 We observe that... **TODO**
+-->
 
-## Run my experiment
+## 2.0 Run my experiment
 
 ### Instantiate a POWDER profile
 
