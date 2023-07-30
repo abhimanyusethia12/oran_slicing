@@ -103,7 +103,7 @@ In order to run the experiments, as described above, follow the steps described 
 
 In your browser, login to POWDER testbed ( a cloudlab login works fine) and then browse to [O-RAN profile](https://www.powderwireless.net/show-profile.php?project=PowderProfiles&profile=O-RAN). Click on the 'Instantiate' button. It will open a page where you can change the various parameters of the profile. For our experiments, we only need the default set of parameters - so, do not change any parameters and click on 'Next'. After that you need to select the Project you are added to and can optionally give your exeriment a name (or else POWDER will allot it a randomly generated name). Then, click on 'Next' and 'Finish' on the final page. 
 
-_Note 1:_ If you want to play around with the parameters, beware as not all combinations work - O-RAN is under heavy development.
+_Note 1:_ If you want to play around with the parameters, beware as not all combinations work - O-RAN is under heavy development. <br>
 _Note 2:_ You can also schedule the initalization of an experiment at a future date and time by using the options on the final page.
 
 ### 2.2 Install additional software
@@ -115,6 +115,7 @@ After you setup a new SSH connection to the node, run the following commands to 
 sudo apt install gnuradio
 ```
 Check if it is succesfully installed using `gnuradio-config-info --version`
+
 2. Install and setup Apache Web server (will be used to run the emulated video-on-demand and web browsing applications)
 ```
 sudo apt update  
