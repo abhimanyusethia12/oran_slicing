@@ -26,7 +26,9 @@ The experiment initializes a single node on the POWDER testbed and we run the eN
 
 ### Network slicing with O-RAN on POWDER
 
-  **TODO** 
+For implementation of slicing with O-RAN, we use NexRAN, a top-to-bottom open-source Open-RAN based slicing implementation, presented by [^1]
+
+[^1] David Johnson, Dustin Maas, and Jacobus Van Der Merwe. 2021. NexRAN: Closed-loop RAN slicing in POWDER -A top-to-bottom open-source open-RAN use case. In Proceedings of the 15th ACM Workshop on Wireless Network Testbeds, Experimental evaluation & CHaracterization (WiNTECH'21). Association for Computing Machinery, New York, NY, USA, 17–23. [https://doi.org/10.1145/3477086.3480842](https://doi.org/10.1145/3477086.3480842)
 
 ### Disaster recovery scenario
 
