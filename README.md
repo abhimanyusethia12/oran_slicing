@@ -42,7 +42,9 @@ To understand how the scheduling actually works, it might be a good idea to read
 5. However, the periodical special subframe (X) follows a different priority order which is as follows: Unidentified UEs > UEs belonging to slices > UEs not associated with any slice
 6. The scheduler is work-conserving by default i.e. it follows the priority order as per rules 4 and 5 above. However, the work-conserving mode can be disabled. If disabled, then in any subframe, only the UEs having the first priority in that subframe will be allotted PRBs and even if the first priority UEs do not use all the resources, those resources are not made available to other UEs. 
 
-<img width="508" alt="image" src="https://github.com/abhimanyusethia12/oran_slicing/assets/51320930/74cc4393-de3c-42c6-96fd-70e1b945e368">
+<div align="center">
+  <img width="508" alt="image" src="https://github.com/abhimanyusethia12/oran_slicing/assets/51320930/74cc4393-de3c-42c6-96fd-70e1b945e368">
+</div>
 
 ### 1.3 Disaster recovery scenario
 
