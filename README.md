@@ -245,16 +245,21 @@ In a new SSH connection to the node,
 ```
 kubectl logs -f -n ricxapp -l app=ricxapp-nexran
 ```
-#### Restart the core RIC components
+### 2.8 Video Streaming on UE1
 
-#### Validate connectivity with `ping`
+### 2.9 Video Calling on UE1
 
-### Deploy network slicing xApp
+### 2.10 Video-on-demand on UE1
 
-#### Onboard and deploy xApp
+### 2.11 Web Browsing on UE1
 
-#### Set up two slices
+### 2.12 API Calls to xApp
 
+### 2.13 Adding Rescue Workers
+
+### 2.14 Adding Secondary Workers
+
+<!--
 ### First experiment: Only primary users
 
 #### Assign UE to primary slice
@@ -276,7 +281,7 @@ kubectl logs -f -n ricxapp -l app=ricxapp-nexran
 #### Start traffic on primary slice and secondary slice, and on unattached UE
 
 #### Analyze results from the third experiment
-
+-->
 
 ## 3.0 Troubleshooting
 
