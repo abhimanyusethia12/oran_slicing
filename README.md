@@ -111,42 +111,42 @@ _Note 2:_ You can also schedule the initalization of an experiment at a future d
 After you setup a new SSH connection to the node, run the following commands to install the required softwares:
 
 1. Install GNU Radio (will be used to run a flowgraph)
-```
-sudo apt install gnuradio
-```
-Check if it is succesfully installed using `gnuradio-config-info --version`
+  ```
+  sudo apt install gnuradio
+  ```
+  Check if it is succesfully installed using `gnuradio-config-info --version`
 
 2. Install and setup Apache Web server (will be used to run the emulated video-on-demand and web browsing applications)
-```
-sudo apt update  
-sudo apt install -y apache2
-```
-Check if it is succesfully installed using `apache2 -v #to check`
+  ```
+  sudo apt update  
+  sudo apt install -y apache2
+  ```
+  Check if it is succesfully installed using `apache2 -v #to check`
 
 3. Change port of Apache Web Server and restart (The default port 80 is not available as it used by the Kubernetes clusters)
-```
-sudo vi /etc/apache2/ports.conf
-```
-This shall open in vim the `ports.conf` file. In this file, identify the line which reads `Listen 80`, edit it to `Listen 5010` and save and exit the file. 
-After changing the port in the config file, restart the Apache Web Server with this command:
-```
-sudo service apache2 restart
-```
+  ```
+  sudo vi /etc/apache2/ports.conf
+  ```
+  This shall open in vim the `ports.conf` file. In this file, identify the line which reads `Listen 80`, edit it to `Listen 5010` and save and exit the file. 
+  After changing the port in the config file, restart the Apache Web Server with this command:
+  ```
+  sudo service apache2 restart
+  ```
 
 4. Download the required videos for video-on-demand application emulation
-```
-wget https://nyu.box.com/shared/static/d6btpwf5lqmkqh53b52ynhmfthh2qtby.tgz -O media.tgz
-```
-Shift the downloaded videos in the web server directory
-```
-sudo tar -v -xzf media.tgz -C /var/www/html/
-```
+  ```
+  wget https://nyu.box.com/shared/static/d6btpwf5lqmkqh53b52ynhmfthh2qtby.tgz -O media.tgz
+  ```
+  Shift the downloaded videos in the web server directory
+  ```
+  sudo tar -v -xzf media.tgz -C /var/www/html/
+  ```
 
 5. Install Python2 (will be used for video-on-demand application emulation)
-```
-sudo apt update  
-sudo apt install -y python2
-```
+  ```
+  sudo apt update  
+  sudo apt install -y python2
+  ```
 
 6. Download and save the file `flowgraph.py` in this repo, on your local computer. And then transfer the file to the remote node, using scp:
    ```
@@ -176,14 +176,14 @@ Once, all the deployments and pods are working fine, we are all set to start ini
 By default the profile is setup for having only one UE connected to one eNodeB. But for our experiment, we want to connect multiple UEs to the single eNodeB. Hence, we need to make the following changes:
 
 In a SSH connection to the POWDER node, run the following commands to edit the `user_db.csv` file (containing database of all UEs for the core network)
-   ```
-   sudo sed -ie 's/^\(ue2.*\),dynamic/\1,192.168.0.3/' /etc/srslte/user_db.csv
-   sudo sed -i 's/mil/xor/' /etc/srslte/user_db.csv
-   echo "ue3,xor,001010123456781,00112233445566778899aabbccddeeff,opc,63bfa50ee6523365ff14c1f45f88737d,8002,000000001488,7,192.168.0.4" | sudo tee -a /etc/srslte/user_db.csv
-   ```
+ ```
+ sudo sed -ie 's/^\(ue2.*\),dynamic/\1,192.168.0.3/' /etc/srslte/user_db.csv
+ sudo sed -i 's/mil/xor/' /etc/srslte/user_db.csv
+ echo "ue3,xor,001010123456781,00112233445566778899aabbccddeeff,opc,63bfa50ee6523365ff14c1f45f88737d,8002,000000001488,7,192.168.0.4" | sudo tee -a /etc/srslte/user_db.csv
+ ```
 To manually read the edited file and check if all three UEs are successfully added with their respective IMSI numbers and IP adddresses, run `cat /etc/srslte/user_db.csv`.
 
-_Note 1:_ If you want to extend the experiment to more than 3 UEs, then add more lines similar to the ue3 line above (with a unique IMSI number and IP address). However, note that the flowgraph will also need to be edited accordingly to handle more UE ports. 
+_Note:_ If you want to extend the experiment to more than 3 UEs, then add more lines similar to the ue3 line above (with a unique IMSI number and IP address). However, note that the flowgraph will also need to be edited accordingly to handle more UE ports. 
 
 ### 2.5 Start EPC and eNodeB
 In a new SSH connection to the POWDER node, 
@@ -191,15 +191,15 @@ In a new SSH connection to the POWDER node,
   ```
   sudo /local/setup/srslte-ric/build/srsepc/src/srsepc --spgw.sgi_if_addr=192.168.0.1 2>&1 >> /local/logs/srsepc.log &
   ```
-To check if the epc has been initialized succesfully, read the logs using `cat /local/logs/srsepc.log`
+  To check if the epc has been initialized succesfully, read the logs using `cat /local/logs/srsepc.log`
 
 2. Setup the eNodeB
-```
-. /local/repository/demo/get-env.sh #setup local variables
-sudo /local/setup/srslte-ric/build/srsenb/src/srsenb --enb.n_prb=15 --enb.name=enb1 --enb.enb_id=0x19B --rf.device_name=zmq --rf.device_args="fail_on_disconnect=true,id=enb,base_srate=23.04e6,tx_port=tcp://*:2000,rx_port=tcp://localhost:2001" --ric.agent.remote_ipv4_addr=${E2TERM_SCTP} --ric.agent.local_ipv4_addr=10.10.1.1 --ric.agent.local_port=52525 --log.all_level=warn --ric.agent.log_level=debug --log.filename=stdout --slicer.enable=1 --slicer.workshare=1
-```
-_Note 1:_ If `slicer.workshare` argument for srsenb is 1, then work-conserving mode is enabled (default). If you want to disable work-conserving mode, then make the argument value 0 instead of 1. <br>
-_Note 2:_ The first srsenb argument `enb.n_prb` changes the available PRBs. Since absolute RAN performance is not relevant to our experiment, the value is arbitrarily chosen to be 15.
+  ```
+  . /local/repository/demo/get-env.sh #setup local variables
+  sudo /local/setup/srslte-ric/build/srsenb/src/srsenb --enb.n_prb=15 --enb.name=enb1 --enb.enb_id=0x19B --rf.device_name=zmq --rf.device_args="fail_on_disconnect=true,id=enb,base_srate=23.04e6,tx_port=tcp://*:2000,rx_port=tcp://localhost:2001" --ric.agent.remote_ipv4_addr=${E2TERM_SCTP} --ric.agent.local_ipv4_addr=10.10.1.1 --ric.agent.local_port=52525 --log.all_level=warn --ric.agent.log_level=debug --log.filename=stdout --slicer.enable=1 --slicer.workshare=1
+  ```
+  _Note 1:_ If `slicer.workshare` argument for srsenb is 1, then work-conserving mode is enabled (default). If you want to disable work-conserving mode, then make the argument value 0 instead of 1. <br>
+  _Note 2:_ The first srsenb argument `enb.n_prb` changes the available PRBs. Since absolute RAN performance is not relevant to our experiment, the value is arbitrarily chosen to be 15.
 
 ### 2.6 Start UEs and GNU Radio Broker
  1. First, we create separate namespaces for each of the UEs since SPGW network interface from the EPC process is already in the root network namespace. In a SSH-connection to the node, run:
@@ -220,7 +220,7 @@ _Note 2:_ The first srsenb argument `enb.n_prb` changes the available PRBs. Sinc
    ```
    sudo /local/setup/srslte-ric/build/srsue/src/srsue --rf.device_name=zmq --rf.device_args="tx_port=tcp://*:2003,rx_port=tcp://localhost:2053,id=ue3,base_srate=23.04e6" --usim.algo=xor --usim.imsi=001010123456781 --usim.k=00112233445566778899aabbccddeeff --usim.imei=353490069873310 --log.all_level=warn --log.filename=stdout --gw.netns=ue3
    ```
-Note that the IMSI and key values correspond to the values of the respective UEs entered in the `user_db`. Moreover, the `tx_port` and `rx_port` correspond to the ports in the GNU Radio flowgraph.
+  Note that the IMSI and key values correspond to the values of the respective UEs entered in the `user_db`. Moreover, the `tx_port` and `rx_port` correspond to the ports in the GNU Radio flowgraph.
 
 3. After all three UEs have been initialized, start the GNU Radio companion flowgraph in a separate SSH-connection to the node:
    ```
@@ -230,32 +230,125 @@ Note that the IMSI and key values correspond to the values of the respective UEs
 ### 2.7 Deploy NexRAN xApp for slicing
 In a new SSH connection to the node, 
 1. Onboard the xApp
-```
-/local/setup/oran/dms_cli onboard /local/profile-public/nexran-config-file.json /local/setup/oran/xapp-embedded-schema.json
-```
+  ```
+  /local/setup/oran/dms_cli onboard /local/profile-public/nexran-config-file.json /local/setup/oran/xapp-embedded-schema.json
+  ```
 2. Verify that the xApp is successfully created. On running this command, you should see a JSON blob that refers to a Helm chart
-```
-/local/setup/oran/dms_cli get_charts_list
-```
+  ```
+  /local/setup/oran/dms_cli get_charts_list
+  ```
 3. Deploy the xApp
-```
-/local/setup/oran/dms_cli install --xapp_chart_name=nexran --version=0.1.0 --namespace=ricxapp
-```
+  ```
+  /local/setup/oran/dms_cli install --xapp_chart_name=nexran --version=0.1.0 --namespace=ricxapp
+  ```
 4. (optional) if you want to view the logs of the xApp, run this command:
+  ```
+  kubectl logs -f -n ricxapp -l app=ricxapp-nexran
+  ```
+### 2.8 Video Streaming UE1
+We emulate a video streaming application like news broadcast by a 2Mbps downlink UDP iperf stream from the eNodeB to UE1. First, in a SSH connection to the node, run the iperf server
 ```
-kubectl logs -f -n ricxapp -l app=ricxapp-nexran
+iperf3 -s -B 192.168.0.1 -p 5009 -i 1
 ```
-### 2.8 Video Streaming on UE1
+Here, `198.168.0.1` is the IP address of the eNodeB and `5009` is the port on which we want the iperf server to listen.
+In a new SSH connection to the node, run the iperf client in UE1's namespace.
+```
+sudo ip netns exec ue1 iperf3 -c 192.168.0.1 -p 5009 -i 1 -t 36000 -b 2M -u -R
+```
+Note that you must supply `-u` argument to ensure that it is a UDP stream and `-R` argument to ensure that it is a downlink stream.
 
 ### 2.9 Video Calling on UE1
+We emulate a video calling application like Zoom by a 1.5Mbps bidirectional (i.e. uplink and downlink both) UDP iperf stream between the eNodeB and UE1. First, in a SSH connection to the node, run the iperf server
+```
+iperf3 -s -B 192.168.0.1 -p 5008 -i 1
+```
+Here, `198.168.0.1` is the IP address of the eNodeB and `5008` is the port on which we want the iperf server to listen.
+In a new SSH connection to the node, run the iperf client in UE1's namespace.
+```
+sudo ip netns exec ue1 iperf3 -c 192.168.0.1 -p 5008 -i 1 -t 36000 -b 1.5M -u --bidir
+```
+Note that you must supply `-u` argument to ensure that it is a UDP stream and `-bidir` argument to ensure that it is a bidirectional stream.
 
 ### 2.10 Video-on-demand on UE1
+We emulate video-on-demand applications like Netflix and Youtube by using the Apache Web Server. Make sure you have the Apache Web server installed, port configured, and video files downloaded in the web directory (described in Section 2.1). Now, in a new SSH connection to the node, clone and run the client:
+```
+git clone https://github.com/pari685/AStream
+sudo ip netns exec ue1 python2 AStream/dist/client/dash_client.py -m http://192.168.0.1:5010/media/BigBuckBunny/4sec/BigBuckBunny_4s.mpd -p 'basic' -d
+```
+The client can work with various rate adaptation algorithms which can be chosen by changing the value of `-p` parameter to `'basic'`,`'netflix'` or `'sara'`. For more details on these algorithms read [here](https://github.com/pari685/AStream).
 
 ### 2.11 Web Browsing on UE1
+For emulating web browsing applications, we again use the Apache Web Server. We first mirror some selected websites like reddit.com , nytimes.com, linkedin.com and twitter.com. To do so, run the following in a new SSH connection to the node:
+```
+cd /var/www/html/ 
+sudo wget -e robots=off --wait 1 -H -p -k http://nytimes.com/  
+sudo wget -e robots=off --wait 1 -H -p -k http://linkedin.com/  
+sudo wget -e robots=off --wait 1 -H -p -k http://reddit.com/  
+sudo wget -e robots=off --wait 1 -H -p -k http://twitter.com/
+```
+Now, download the file `web_browsing.py` from this repo on your local computer and shift it to the remote node using scp:
+```
+scp <path_to_local_file> <address_of_remote_node>:browsing.py
+```
+After shifting it to the remote server, setup a SSH connection with the POWDER node and run the python script on the node:
+```
+python3 browsing.py
+```
+In the script, I run an infinite loop. In each iteration of a loop, I retrieve a randomly chosen website using `wget`, then wait for random time interval (between 10s and 30s) and then re-run the loop. 
+
+_Note:_ The script has commands which run the web browsing activity on the UE1 namespace and using a Apache Web server hosted at `192.168.0.1` and port `5010`. This should work fine if you have been following all the instructions above. But if you have changed the port/IP address settings for the server or want to run the web browsing application on a different UE, then you need to make the corresponding changes in the `web_browsing.py` script.
 
 ### 2.12 API Calls to xApp
+Now, that we have all the four applications running on our UE1, we will create corresponding UE object, slice object and bind them using NexRAN xApp APIs. In a new SSH connection, run the following:
+1. Collect IP addresses of the NexRAN Northbound RESTful APIs
+  ```
+  . /local/repository/demo/get-env.sh
+  ```
+2. Check that we can talk to the NexRAN xApp. You should see some version and build info in the output.
+  ```
+  curl -i -X GET http://${NEXRAN_XAPP}:8000/v1/version ; echo ; echo
+  ```
+3. The xApp automatically writes certain metric values to a database (Influx DB) exposed by an API. Open the Grafana dashboard (you can find the link and sign-in credentials) in the 'Open the Grafana NexRAN Dashboard in your browser' subsection under the 'Running NexRAN demos' section of your experiment page. Initially, you will see a blank dashboard with no data as it has not been configured. Use this command to configure the Grafana dashboard:
+   ```
+   curl -L -X PUT http://$NEXRAN_XAPP:8000/v1/appconfig -H "Content-type: application/json" -d '{"kpm_interval_index":18,"influxdb_url":"'$INFLUXDB_URL'?db=nexran"}'
+   ```
+4. Creating eNodeB object
+  ```
+  OUTPUT=`curl -X POST -H "Content-type: application/json" -d '{"type":"eNB","id":411,"mcc":"001","mnc":"01"}' http://${NEXRAN_XAPP}:8000/v1/nodebs`
+  echo $OUTPUT
+  NBNAME=`echo $OUTPUT | jq -r '.name'`
+  ```
+4. Creating 'primary' slice
+  ```
+  curl -i -X POST -H "Content-type: application/json" -d '{"name":"primary","allocation_policy":{"type":"proportional","share":1024}}' http://${NEXRAN_XAPP}:8000/v1/slices ; echo ; echo
+  ```
+5. Creating 'rescue' slice
+  ```
+  curl -i -X POST -H "Content-type: application/json" -d '{"name":"rescue","allocation_policy":{"type":"proportional","share":256}}' http://${NEXRAN_XAPP}:8000/v1/slices ; echo ; echo
+  ```
+6. Binding slices to eNodeB
+  ```
+  curl -i -X POST http://${NEXRAN_XAPP}:8000/v1/nodebs/${NBNAME}/slices/primary ; echo ; echo
+  curl -i -X POST http://${NEXRAN_XAPP}:8000/v1/nodebs/${NBNAME}/slices/rescue ; echo ; echo
+  ```
+7. Creating UE1 object
+  ```
+  curl -i -X POST -H "Content-type: application/json" -d '{"imsi":"001010123456789"}' http://${NEXRAN_XAPP}:8000/v1/ues ; echo ; echo
+  ```
+8. Binding UE1 to 'primary' slice
+  ```
+  curl -i -X POST http://${NEXRAN_XAPP}:8000/v1/slices/primary/ues/001010123456789 ; echo ; echo
+  ```
+At this point, our Experiment 1 should be up and running. You can observe the PRBs utilized, bytes per second and packets per second in both directions for the one and only UE on the Grafana dashboard in real time. For the video-on-demand application, logs are written in files inside the folder `ASTREAM_LOGS`.
 
-### 2.13 Adding Rescue Workers
+### 2.13 Experiment 2: Adding Rescue Workers
+To add rescue workers, we will need to initialize a new UE (UE2), run the intermittent data transfer application on the UE and bind the UE to the 'rescue' slice defined in last section. You can follow these steps:
+
+1. In a new SSH connection open a new 
+  ```
+  curl -i -X POST http://${NEXRAN_XAPP}:8000/v1/slices/primary/ues/001010123456789 ; echo ; echo
+  ```
+
 
 ### 2.14 Adding Secondary Workers
 
