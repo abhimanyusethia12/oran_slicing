@@ -342,15 +342,57 @@ Now, that we have all the four applications running on our UE1, we will create c
 At this point, our Experiment 1 should be up and running. You can observe the PRBs utilized, bytes per second and packets per second in both directions for the one and only UE on the Grafana dashboard in real time. For the video-on-demand application, logs are written in files inside the folder `ASTREAM_LOGS`.
 
 ### 2.13 Experiment 2: Adding Rescue Workers
-To add rescue workers, we will need to initialize a new UE (UE2), run the intermittent data transfer application on the UE and bind the UE to the 'rescue' slice defined in last section. You can follow these steps:
+To add rescue workers, we will need to run the intermittent data transfer application on the UE2 and bind the UE to the 'rescue' slice defined in last section. You can follow these steps:
 
-1. In a new SSH connection open a new 
+1. In a new SSH connection, start a new iperf server on port 5011 on the eNodeB
   ```
-  curl -i -X POST http://${NEXRAN_XAPP}:8000/v1/slices/primary/ues/001010123456789 ; echo ; echo
+  iperf3 -s -B 192.168.0.1 -p 5011 -i 1
+  ```
+2. Download the file `rescue.py` from this repo on your local computer and shift it to the remote node using scp:
+  ```
+  scp <path_to_local_file> <address_of_remote_node>:rescue.py
+  ```
+3. After shifting it to the remote server, setup a SSH connection with the POWDER node and run the python script on the node:
+  ```
+  python3 rescue.py
+  ```
+  The script runs an infinite loop. In each iteration of the loop, its sends an iperf TCP stream from the ue2 namespace to the 5011 server port on the eNodeB. It sends a randomly chosen amount of data (between 0.5MB and 30MB) in a random direction (uplink or downlink), then waits for a random time interval (between 10s and 30s) and then re-runs the loop. 
+4. Collect IP addresses of the NexRAN Northbound RESTful APIs
+  ```
+  . /local/repository/demo/get-env.sh
+  ```
+5. Create a UE2 object in the xApp:
+  ```
+  curl -i -X POST -H "Content-type: application/json" -d '{"imsi":"001010123456780"}' http://${NEXRAN_XAPP}:8000/v1/ues ; echo ; echo
+  ```
+6. Bind UE2 to the 'rescue' slice:
+  ```
+  curl -i -X POST http://${NEXRAN_XAPP}:8000/v1/slices/rescue/ues/001010123456780 ; echo ; echo
+  ```
+Now, we should have Experiment 2 (primary users+ rescue workers) up and running. You can observe various metrics live on the Grafana dashboard.
+
+### 2.14 Experiment 3: Adding Secondary Users 
+For secondary UE, we will have a web browsing application running (as per our assumption). 
+
+1. Download the file `web_browsing_ue3.py` from this repo on your local computer and shift it to the remote node using scp:
+  ```
+  scp <path_to_local_file> <address_of_remote_node>:browsing_ue3.py
+  ```
+2. After shifting it to the remote server, setup a new SSH connection with the POWDER node and run the python script on the node:
+  ```
+  python3 browsing_ue3.py
+  ```
+  The script is identical to the web-browsing script used for UE1, except that it executes the command in the namespace of ue3 instead.
+3. Collect IP addresses of the NexRAN Northbound RESTful APIs
+  ```
+  . /local/repository/demo/get-env.sh
+  ```
+4. Create a UE3 object in the xApp:
+  ```
+  curl -i -X POST -H "Content-type: application/json" -d '{"imsi":"001010123456781"}' http://${NEXRAN_XAPP}:8000/v1/ues ; echo ; echo
   ```
 
-
-### 2.14 Adding Secondary Workers
+At this point, you should have Experiment 3 (primary users+ rescue workers + secondary users) up and running. You can observe various metrics live on the Grafana dashboard.
 
 <!--
 ### First experiment: Only primary users
@@ -378,11 +420,37 @@ To add rescue workers, we will need to initialize a new UE (UE2), run the interm
 
 ## 3.0 Troubleshooting
 
-1. Cannot find the 'Instantiate' button when you open the profile link.
-This is most likely because you are not logged into Powder. You should be able to see the 'Instantiate' button only when you are logged into POWDER.
-
-3. 
-
+1. If you cannot find the 'Instantiate' button when you open the profile link, then this is most likely because you are not logged into Powder. You should be able to see the 'Instantiate' button only when you are logged into POWDER.
+2. If any of the API calls to the xApp are not working, make sure you have collected the IP addresses of the various APIs. It might be good idea to run this command and then try calling the API again:
+  ```
+  . /local/repository/demo/get-env.sh
+  ```
+3. If something isn't working and you want to clean up the previous srslte and nexran state, then follow these commands 
+- to clean up the `srsue` process, run `sudo pkill srsue`
+- to clean up the `srsenb` process, run the `sudo pkill srsenb`
+- to clean up the `srsepc` process, run the `sudo pkill srsepc`
+- to unconfigure existing NexRAN xApp instance,
+  ```
+  /local/repository/demo/cleanup-nexran.sh
+  ```
+- Remove existing NexRAN xApp
+  ```
+  . /local/repository/demo/get-env.sh 
+  curl -L -X DELETE http://${APPMGR_HTTP}:8080/ric/v1/xapps/nexran 
+  ```
+- Restart all core RIC Components
+  ```
+  kubectl -n ricplt rollout restart  deployments/deployment-ricplt-e2term-alpha deployments/deployment-ricplt-e2mgr deployments/deployment-ricplt-submgr deployments/deployment-ricplt-rtmgr deployments/deployment-ricplt-appmgr statefulsets/statefulset-ricplt-dbaas-server
+  ```
+- To undeploy the NexRAN xApp, run
+  ```
+  /local/setup/oran/dms_cli uninstall nexran --version=0.1.0 --namespace=ricxapp
+  ```
+- To redeploy the NexRAN xApp, run
+  ```
+  kubectl -n ricxapp rollout restart deployment ricxapp-nexran
+  ```
+You may choose to use all or any subset of these steps depending on what components you want to reset.
 ### References
 
 
