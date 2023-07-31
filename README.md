@@ -106,7 +106,7 @@ In your browser, login to POWDER testbed ( a cloudlab login works fine) and then
 _Note 1:_ If you want to play around with the parameters, beware as not all combinations work - O-RAN is under heavy development. <br>
 _Note 2:_ You can also schedule the initalization of an experiment at a future date and time by using the options on the final page.
 
-### 2.2 Install additional software
+### 2.2 Install and configure additional software and files
 
 After you setup a new SSH connection to the node, run the following commands to install the required softwares:
 
@@ -123,13 +123,129 @@ sudo apt install -y apache2
 ```
 Check if it is succesfully installed using `apache2 -v #to check`
 
-### Set up the cellular network
+3. Change port of Apache Web Server and restart (The default port 80 is not available as it used by the Kubernetes clusters)
+```
+sudo vi /etc/apache2/ports.conf
+```
+This shall open in vim the `ports.conf` file. In this file, identify the line which reads `Listen 80`, edit it to `Listen 5010` and save and exit the file. 
+After changing the port in the config file, restart the Apache Web Server with this command:
+```
+sudo service apache2 restart
+```
 
+4. Download the required videos for video-on-demand application emulation
+```
+wget https://nyu.box.com/shared/static/d6btpwf5lqmkqh53b52ynhmfthh2qtby.tgz -O media.tgz
+```
+Shift the downloaded videos in the web server directory
+```
+sudo tar -v -xzf media.tgz -C /var/www/html/
+```
+
+5. Install Python2 (will be used for video-on-demand application emulation)
+```
+sudo apt update  
+sudo apt install -y python2
+```
+
+6. Download and save the file `flowgraph.py` in this repo, on your local computer. And then transfer the file to the remote node, using scp:
+   ```
+   scp <path_to_local_file> <address_of_remote_node>:flowgraph.py
+   ```
+   The flowgraph is a Python file made using GNU Radio Companion software that directs the signals from various ports in required directions. It consists of source blocks (representing `tx_ports` of the UEs and the eNb), sink blocks (representing `rx_ports` of the UEs and the eNb), multiply constant blocks (that multiplies the signal with a set gain/attenuation) and connections between these blocks (so that a single eNb can connect to multiple UEs).
+
+### 2.3 Make sure the experiment is setup
+After initializing the experiment, it takes about 20-30 minutes for all the setup scripts to run and complete the setup of the experiment. To check if the setup has been completed, ensure the following:
+1. When your startup scripts are running, on the experiment page, it will say `Startup scripts are still running`. Refresh the experiment page on browser and see if it still says so.
+2. Check the logs by running `tail -F /local/logs/setup.log` on a SSH-ed connection to the node
+3. Check if all deployments are 'Available' by running this command on a SSH-ed connection to the node
+   ```
+   kubectl -n ricplt get deployments
+   ```
+4. Check if all the pods are 'Running' by running this command on a SSH-ed connection to the node
+   ```
+   kubectl -n ricplt get pods
+   ```
+5. Finally, wait until the following command returns a non-error
+   ```
+   kubectl -n ricplt wait pod --for=condition=Ready --all --timeout=3m
+   ```
+Once, all the deployments and pods are working fine, we are all set to start initializing our RAN components. 
+
+### 2.4 Adding more UEs to the user database 
+By default the profile is setup for having only one UE connected to one eNodeB. But for our experiment, we want to connect multiple UEs to the single eNodeB. Hence, we need to make the following changes:
+
+In a SSH connection to the POWDER node, run the following commands to edit the `user_db.csv` file (containing database of all UEs for the core network)
+   ```
+   sudo sed -ie 's/^\(ue2.*\),dynamic/\1,192.168.0.3/' /etc/srslte/user_db.csv
+   sudo sed -i 's/mil/xor/' /etc/srslte/user_db.csv
+   echo "ue3,xor,001010123456781,00112233445566778899aabbccddeeff,opc,63bfa50ee6523365ff14c1f45f88737d,8002,000000001488,7,192.168.0.4" | sudo tee -a /etc/srslte/user_db.csv
+   ```
+To manually read the edited file and check if all three UEs are successfully added with their respective IMSI numbers and IP adddresses, run `cat /etc/srslte/user_db.csv`.
+
+_Note 1:_ If you want to extend the experiment to more than 3 UEs, then add more lines similar to the ue3 line above (with a unique IMSI number and IP address). However, note that the flowgraph will also need to be edited accordingly to handle more UE ports. 
+
+### 2.5 Start EPC and eNodeB
+In a new SSH connection to the POWDER node, 
+1. Start the EPC (Core)
+  ```
+  sudo /local/setup/srslte-ric/build/srsepc/src/srsepc --spgw.sgi_if_addr=192.168.0.1 2>&1 >> /local/logs/srsepc.log &
+  ```
+To check if the epc has been initialized succesfully, read the logs using `cat /local/logs/srsepc.log`
+
+2. Setup the eNodeB
+```
+. /local/repository/demo/get-env.sh #setup local variables
+sudo /local/setup/srslte-ric/build/srsenb/src/srsenb --enb.n_prb=15 --enb.name=enb1 --enb.enb_id=0x19B --rf.device_name=zmq --rf.device_args="fail_on_disconnect=true,id=enb,base_srate=23.04e6,tx_port=tcp://*:2000,rx_port=tcp://localhost:2001" --ric.agent.remote_ipv4_addr=${E2TERM_SCTP} --ric.agent.local_ipv4_addr=10.10.1.1 --ric.agent.local_port=52525 --log.all_level=warn --ric.agent.log_level=debug --log.filename=stdout --slicer.enable=1 --slicer.workshare=1
+```
+_Note 1:_ If `slicer.workshare` argument for srsenb is 1, then work-conserving mode is enabled (default). If you want to disable work-conserving mode, then make the argument value 0 instead of 1. <br>
+_Note 2:_ The first srsenb argument `enb.n_prb` changes the available PRBs. Since absolute RAN performance is not relevant to our experiment, the value is arbitrarily chosen to be 15.
+
+### 2.6 Start UEs and GNU Radio Broker
+ 1. First, we create separate namespaces for each of the UEs since SPGW network interface from the EPC process is already in the root network namespace. In a SSH-connection to the node, run:
+    ```
+    sudo ip netns add ue1
+    sudo ip netns add ue2
+    sudo ip netns add ue3
+    ```
+2. In separate SSH-connections for each UE, start the UE as follows:
+   ```
+   sudo /local/setup/srslte-ric/build/srsue/src/srsue --rf.device_name=zmq --rf.device_args="tx_port=tcp://*:2002,rx_port=tcp://localhost:2052,id=ue1,base_srate=23.04e6" --usim.algo=xor --usim.imsi=001010123456789 --usim.k=00112233445566778899aabbccddeeff --usim.imei=353490069873310 --log.all_level=warn --log.filename=stdout --gw.netns=ue1
+   ```
+   In a separate SSH-connection,
+   ```
+   sudo /local/setup/srslte-ric/build/srsue/src/srsue --rf.device_name=zmq --rf.device_args="tx_port=tcp://*:2004,rx_port=tcp://localhost:2054,id=ue2,base_srate=23.04e6" --usim.algo=xor --usim.imsi=001010123456780 --usim.k=00112233445566778899aabbccddeeff --usim.imei=353490069873310 --log.all_level=warn --log.filename=stdout --gw.netns=ue2
+   ```
+   In a separate SSH-connection
+   ```
+   sudo /local/setup/srslte-ric/build/srsue/src/srsue --rf.device_name=zmq --rf.device_args="tx_port=tcp://*:2003,rx_port=tcp://localhost:2053,id=ue3,base_srate=23.04e6" --usim.algo=xor --usim.imsi=001010123456781 --usim.k=00112233445566778899aabbccddeeff --usim.imei=353490069873310 --log.all_level=warn --log.filename=stdout --gw.netns=ue3
+   ```
+Note that the IMSI and key values correspond to the values of the respective UEs entered in the `user_db`. Moreover, the `tx_port` and `rx_port` correspond to the ports in the GNU Radio flowgraph.
+
+3. After all three UEs have been initialized, start the GNU Radio companion flowgraph in a separate SSH-connection to the node:
+   ```
+   python3 flowgraph.py
+   ```
+
+### 2.7 Deploy NexRAN xApp for slicing
+In a new SSH connection to the node, 
+1. Onboard the xApp
+```
+/local/setup/oran/dms_cli onboard /local/profile-public/nexran-config-file.json /local/setup/oran/xapp-embedded-schema.json
+```
+2. Verify that the xApp is successfully created. On running this command, you should see a JSON blob that refers to a Helm chart
+```
+/local/setup/oran/dms_cli get_charts_list
+```
+3. Deploy the xApp
+```
+/local/setup/oran/dms_cli install --xapp_chart_name=nexran --version=0.1.0 --namespace=ricxapp
+```
+4. (optional) if you want to view the logs of the xApp, run this command:
+```
+kubectl logs -f -n ricxapp -l app=ricxapp-nexran
+```
 #### Restart the core RIC components
-
-#### Start EPC and eNB
-
-#### Start UEs and GNU Radio broker
 
 #### Validate connectivity with `ping`
 
