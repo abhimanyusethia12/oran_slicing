@@ -1,3 +1,5 @@
+NOTE: For a theoretical overview of the project, you can find the slides I presented at NYU Wireless [here](https://drive.google.com/file/d/1l68hZk5D4Zkr4VN21s9UUU2hUvMwCCH8/view?usp=drive_link)
+
 # Slicing with O-RAN on Powder Testbed for Disaster Recovery
 
 It will take about 60-120 minutes to run this experiment.
